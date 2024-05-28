@@ -97,6 +97,8 @@ pub struct Theme {
     pub is_frosted: bool,
     /// shade color for dialogs
     pub shade: Srgba,
+    /// controls how fast the theme transitions are
+    pub animation_multiplier: f32,
 }
 
 impl Default for Theme {
@@ -599,6 +601,8 @@ pub struct ThemeBuilder {
     pub active_hint: u32,
     /// cosmic-comp custom window hint color
     pub window_hint: Option<Srgb>,
+    /// override how fast the theme transitions are for the builder
+    pub animation_multiplier: f32,
 }
 
 impl Default for ThemeBuilder {
@@ -621,6 +625,7 @@ impl Default for ThemeBuilder {
             gaps: (0, 8),
             active_hint: 3,
             window_hint: None,
+            animation_multiplier: 1.0,
         }
     }
 }
@@ -748,6 +753,7 @@ impl ThemeBuilder {
             active_hint,
             window_hint,
             is_frosted,
+            animation_multiplier,
         } = self;
 
         let is_dark = palette.is_dark();
@@ -1096,6 +1102,7 @@ impl ThemeBuilder {
             active_hint,
             window_hint,
             is_frosted,
+            animation_multiplier,
         };
         theme.spacing = spacing;
         theme.corner_radii = corner_radii;
