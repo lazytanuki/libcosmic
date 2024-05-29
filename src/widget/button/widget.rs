@@ -6,6 +6,7 @@
 //!
 //! A [`Button`] has some local [`State`].
 
+use cosmic_theme::HoverPressedAnimation;
 use iced_runtime::core::widget::Id;
 use iced_runtime::{keyboard, Command};
 
@@ -22,6 +23,7 @@ use iced_core::{
 };
 use iced_renderer::core::widget::{operation, OperationOutputWrapper};
 
+use crate::iced_core::window;
 use crate::theme::THEME;
 
 pub use super::style::{Appearance, StyleSheet};
@@ -55,6 +57,7 @@ pub struct Button<'a, Message> {
     selected: bool,
     style: crate::theme::Button,
     variant: Variant<Message>,
+    animation_duration_ms: u32,
 }
 
 impl<'a, Message> Button<'a, Message> {
@@ -77,6 +80,7 @@ impl<'a, Message> Button<'a, Message> {
             selected: false,
             style: crate::theme::Button::default(),
             variant: Variant::Normal,
+            animation_duration_ms: 150,
         }
     }
 
@@ -111,6 +115,7 @@ impl<'a, Message> Button<'a, Message> {
                         iced_core::svg::Handle::from_memory(bytes)
                     }),
             },
+            animation_duration_ms: 200,
         }
     }
 
@@ -326,6 +331,7 @@ impl<'a, Message: 'a + Clone> Widget<Message, crate::Theme, crate::Renderer>
             &self.on_press,
             &self.on_press_down,
             || tree.state.downcast_mut::<State>(),
+            self.animation_duration_ms,
         )
     }
 
@@ -352,19 +358,29 @@ impl<'a, Message: 'a + Clone> Widget<Message, crate::Theme, crate::Renderer>
 
         let styling = if !is_enabled {
             theme.disabled(&self.style)
-        } else if is_mouse_over {
-            if state.is_pressed {
+        } else if is_mouse_over || state.hovered_animation.is_running() {
+            if state.is_pressed || state.pressed_animation.is_running() {
                 if !self.selected && matches!(self.style, crate::theme::Button::HeaderBar) {
                     headerbar_alpha = Some(0.8);
                 }
 
-                theme.pressed(state.is_focused, self.selected, &self.style)
+                theme.pressed(
+                    state.is_focused,
+                    self.selected,
+                    &self.style,
+                    Some(&state.pressed_animation),
+                )
             } else {
                 if !self.selected && matches!(self.style, crate::theme::Button::HeaderBar) {
                     headerbar_alpha = Some(0.8);
                 }
 
-                theme.hovered(state.is_focused, self.selected, &self.style)
+                theme.hovered(
+                    state.is_focused,
+                    self.selected,
+                    &self.style,
+                    Some(&state.hovered_animation),
+                )
             }
         } else {
             if !self.selected && matches!(self.style, crate::theme::Button::HeaderBar) {
@@ -617,12 +633,14 @@ impl<'a, Message: Clone + 'a> From<Button<'a, Message>> for crate::Element<'a, M
 }
 
 /// The local state of a [`Button`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 #[allow(clippy::struct_field_names)]
 pub struct State {
     is_hovered: bool,
     is_pressed: bool,
     is_focused: bool,
+    hovered_animation: HoverPressedAnimation,
+    pressed_animation: HoverPressedAnimation,
 }
 
 impl State {
@@ -664,6 +682,7 @@ pub fn update<'a, Message: Clone>(
     on_press: &Option<Message>,
     on_press_down: &Option<Message>,
     state: impl FnOnce() -> &'a mut State,
+    animation_duration_ms: u32,
 ) -> event::Status {
     match event {
         Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
@@ -675,6 +694,8 @@ pub fn update<'a, Message: Clone>(
                     let state = state();
 
                     state.is_pressed = true;
+                    state.pressed_animation.on_press();
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
 
                     if let Some(on_press_down) = on_press_down {
                         shell.publish(on_press_down.clone());
@@ -691,6 +712,8 @@ pub fn update<'a, Message: Clone>(
 
                 if state.is_pressed {
                     state.is_pressed = false;
+                    state.pressed_animation.on_released();
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
 
                     let bounds = layout.bounds();
 
@@ -731,6 +754,40 @@ pub fn update<'a, Message: Clone>(
             let state = state();
             state.is_hovered = false;
             state.is_pressed = false;
+        }
+        Event::Window(_, window::Event::RedrawRequested(now)) => {
+            let state = state();
+
+            if state.is_pressed || state.pressed_animation.is_running() {
+                if state
+                    .pressed_animation
+                    .on_redraw_request_update(animation_duration_ms, now)
+                {
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
+                }
+            } else if state
+                .hovered_animation
+                .on_redraw_request_update(animation_duration_ms, now)
+            {
+                shell.request_redraw(window::RedrawRequest::NextFrame);
+            }
+        }
+        Event::Mouse(mouse::Event::CursorMoved { position: _ }) => {
+            let state = state();
+            let bounds = layout.bounds();
+            let is_mouse_over = if let Some(cursor_position) = cursor.position() {
+                bounds.contains(cursor_position)
+            } else {
+                false
+            };
+
+            if !state.is_pressed
+                && state
+                    .hovered_animation
+                    .on_cursor_moved_update(is_mouse_over)
+            {
+                shell.request_redraw(window::RedrawRequest::NextFrame);
+            }
         }
         _ => {}
     }

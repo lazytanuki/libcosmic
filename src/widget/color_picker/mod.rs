@@ -843,7 +843,7 @@ pub fn color_button<'a, Message: 'static>(
                 (0.0, Color::TRANSPARENT)
             };
 
-            let standard = theme.hovered(focused, false, &Button::Standard);
+            let standard = theme.hovered(focused, false, &Button::Standard, None);
             button::Appearance {
                 shadow_offset: Vector::default(),
                 background: color.map(Background::from).or(standard.background),
@@ -865,7 +865,7 @@ pub fn color_button<'a, Message: 'static>(
                 (0.0, Color::TRANSPARENT)
             };
 
-            let standard = theme.pressed(focused, false, &Button::Standard);
+            let standard = theme.pressed(focused, false, &Button::Standard, None);
             button::Appearance {
                 shadow_offset: Vector::default(),
                 background: color.map(Background::from).or(standard.background),

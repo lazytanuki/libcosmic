@@ -1,5 +1,7 @@
 //! Add theme animations to widgets.
 
+use iced_core::Color;
+
 /// Hover animation of the widget
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct HoverPressedAnimation {
@@ -62,7 +64,7 @@ impl HoverPressedAnimation {
     /// Update the animation progress, if necessary, and returns the need to request a redraw.
     pub fn on_redraw_request_update(
         &mut self,
-        animation_duration_ms: u16,
+        animation_duration_ms: u32,
         now: std::time::Instant,
     ) -> bool {
         // Is the animation running ?
@@ -184,4 +186,14 @@ impl HoverPressedAnimation {
 fn ease_out_cubic(t: f32) -> f32 {
     let p = t - 1f32;
     p * p * p + 1f32
+}
+
+/// Mix with another color with the given ratio (should be in `iced/core/src/color.rs` ?)
+pub fn mix(mut color: Color, other: Color, ratio: f32) -> Color {
+    let self_ratio = 1.0 - ratio;
+    color.r = (color.r * self_ratio + other.r * ratio).clamp(0.0, 1.0);
+    color.g = (color.g * self_ratio + other.g * ratio).clamp(0.0, 1.0);
+    color.b = (color.b * self_ratio + other.b * ratio).clamp(0.0, 1.0);
+    color.a = (color.a * self_ratio + other.a * ratio).clamp(0.0, 1.0);
+    color
 }

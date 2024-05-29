@@ -30,3 +30,4 @@ cosmic-config = { path = "../cosmic-config/", default-features = false, features
 ] }
 dirs.workspace = true
 thiserror = "1.0.5"
+iced_core = { path = "../iced/core" }

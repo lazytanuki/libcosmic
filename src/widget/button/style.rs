@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MPL-2.0
 
 //! Change the apperance of a button.
+use cosmic_theme::HoverPressedAnimation;
 use iced_core::{border::Radius, Background, Color, Vector};
 
 use crate::theme::THEME;
@@ -75,14 +76,26 @@ pub trait StyleSheet {
 
     /// [`Appearance`] when the button is the target of a DND operation.
     fn drop_target(&self, style: &Self::Style) -> Appearance {
-        self.hovered(false, false, style)
+        self.hovered(false, false, style, None) // TODO: use animation here ?
     }
 
     /// Produces the hovered [`Appearance`] of a button.
-    fn hovered(&self, focused: bool, selected: bool, style: &Self::Style) -> Appearance;
+    fn hovered(
+        &self,
+        focused: bool,
+        selected: bool,
+        style: &Self::Style,
+        hover_animation: Option<&HoverPressedAnimation>,
+    ) -> Appearance;
 
     /// Produces the pressed [`Appearance`] of a button.
-    fn pressed(&self, focused: bool, selected: bool, style: &Self::Style) -> Appearance;
+    fn pressed(
+        &self,
+        focused: bool,
+        selected: bool,
+        style: &Self::Style,
+        pressed_animation: Option<&HoverPressedAnimation>,
+    ) -> Appearance;
 
     /// Background color of the selection indicator
     fn selection_background(&self) -> Background;

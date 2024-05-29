@@ -3,7 +3,7 @@
 
 //! Contains stylesheet implementation for [`crate::widget::button`].
 
-use cosmic_theme::Component;
+use cosmic_theme::{mix, AnimationEffect, Component, HoverPressedAnimation};
 use iced_core::{Background, Color};
 
 use crate::{
@@ -188,7 +188,13 @@ impl StyleSheet for crate::Theme {
         self.active(false, false, style)
     }
 
-    fn hovered(&self, focused: bool, selected: bool, style: &Self::Style) -> Appearance {
+    fn hovered(
+        &self,
+        focused: bool,
+        selected: bool,
+        style: &Self::Style,
+        hover_animation: Option<&HoverPressedAnimation>,
+    ) -> Appearance {
         if let Button::Custom { hovered, .. } = style {
             return hovered(focused, self);
         }
@@ -209,12 +215,29 @@ impl StyleSheet for crate::Theme {
                     Some(component.on.into())
                 };
 
-                (component.hover.into(), text_color, text_color)
+                let background_color = match hover_animation {
+                    Some(hover_animation) => match hover_animation.effect {
+                        AnimationEffect::Linear | AnimationEffect::EaseOut => mix(
+                            component.base.into(),
+                            component.hover.into(),
+                            hover_animation.animation_progress,
+                        ),
+                        AnimationEffect::None => component.hover.into(),
+                    },
+                    None => component.hover.into(),
+                };
+                (background_color, text_color, text_color)
             },
         )
     }
 
-    fn pressed(&self, focused: bool, selected: bool, style: &Self::Style) -> Appearance {
+    fn pressed(
+        &self,
+        focused: bool,
+        selected: bool,
+        style: &Self::Style,
+        pressed_animation: Option<&HoverPressedAnimation>,
+    ) -> Appearance {
         if let Button::Custom { pressed, .. } = style {
             return pressed(focused, self);
         }
@@ -230,7 +253,18 @@ impl StyleSheet for crate::Theme {
                 Some(component.on.into())
             };
 
-            (component.pressed.into(), text_color, text_color)
+            let background_color = match pressed_animation {
+                Some(pressed_animation) => match pressed_animation.effect {
+                    AnimationEffect::Linear | AnimationEffect::EaseOut => mix(
+                        component.hover.into(),
+                        component.pressed.into(),
+                        pressed_animation.animation_progress,
+                    ),
+                    AnimationEffect::None => component.pressed.into(),
+                },
+                None => component.pressed.into(),
+            };
+            (background_color, text_color, text_color)
         })
     }
 
