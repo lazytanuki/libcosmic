@@ -64,12 +64,13 @@ impl HoverPressedAnimation {
     /// Update the animation progress, if necessary, and returns the need to request a redraw.
     pub fn on_redraw_request_update(
         &mut self,
-        animation_duration_ms: u32,
+        forward_duration_ms: u32,
+        backward_duration_ms: u32,
         now: std::time::Instant,
     ) -> bool {
         // Is the animation running ?
         if let Some(started_at) = self.started_at {
-            if self.animation_progress >= 1.0 || animation_duration_ms == 0 {
+            if forward_duration_ms == 0 {
                 self.animation_progress = 1.0;
             }
 
@@ -79,38 +80,40 @@ impl HoverPressedAnimation {
             } else {
                 // Evaluate new progress
                 match &mut self.effect {
-                    AnimationEffect::Linear => {
-                        let progress_since_start = ((now - started_at).as_millis() as f64)
-                            / (animation_duration_ms as f64);
-                        match self.direction {
-                            AnimationDirection::Forward => {
-                                self.animation_progress = (self.initial_progress
-                                    + progress_since_start as f32)
-                                    .clamp(0.0, 1.0);
-                            }
-                            AnimationDirection::Backward => {
-                                self.animation_progress = (self.initial_progress
-                                    - progress_since_start as f32)
-                                    .clamp(0.0, 1.0);
-                            }
-                        }
-                    }
-                    AnimationEffect::EaseOut => {
-                        let progress_since_start = ((now - started_at).as_millis() as f32)
-                            / (animation_duration_ms as f32);
-                        match self.direction {
-                            AnimationDirection::Forward => {
-                                self.animation_progress = (self.initial_progress
-                                    + ease_out_cubic(progress_since_start))
+                    AnimationEffect::Linear => match self.direction {
+                        AnimationDirection::Forward => {
+                            self.animation_progress = (self.initial_progress
+                                + (((now - started_at).as_millis() as f64)
+                                    / (forward_duration_ms as f64))
+                                    as f32)
                                 .clamp(0.0, 1.0);
-                            }
-                            AnimationDirection::Backward => {
-                                self.animation_progress = (self.initial_progress
-                                    - ease_out_cubic(progress_since_start))
-                                .clamp(0.0, 1.0);
-                            }
                         }
-                    }
+                        AnimationDirection::Backward => {
+                            self.animation_progress = (self.initial_progress
+                                - (((now - started_at).as_millis() as f64)
+                                    / (backward_duration_ms as f64))
+                                    as f32)
+                                .clamp(0.0, 1.0);
+                        }
+                    },
+                    AnimationEffect::EaseOut => match self.direction {
+                        AnimationDirection::Forward => {
+                            self.animation_progress = (self.initial_progress
+                                + ease_out_cubic(
+                                    ((now - started_at).as_millis() as f32)
+                                        / (forward_duration_ms as f32),
+                                ))
+                            .clamp(0.0, 1.0);
+                        }
+                        AnimationDirection::Backward => {
+                            self.animation_progress = (self.initial_progress
+                                - ease_out_cubic(
+                                    ((now - started_at).as_millis() as f32)
+                                        / (backward_duration_ms as f32),
+                                ))
+                            .clamp(0.0, 1.0);
+                        }
+                    },
                     AnimationEffect::None => {}
                 }
             }

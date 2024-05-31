@@ -57,7 +57,8 @@ pub struct Button<'a, Message> {
     selected: bool,
     style: crate::theme::Button,
     variant: Variant<Message>,
-    animation_duration_ms: u32,
+    forward_animation_duration_ms: u32,
+    backward_animation_duration_ms: u32,
 }
 
 impl<'a, Message> Button<'a, Message> {
@@ -80,7 +81,8 @@ impl<'a, Message> Button<'a, Message> {
             selected: false,
             style: crate::theme::Button::default(),
             variant: Variant::Normal,
-            animation_duration_ms: 150,
+            forward_animation_duration_ms: 100,
+            backward_animation_duration_ms: 400,
         }
     }
 
@@ -115,7 +117,8 @@ impl<'a, Message> Button<'a, Message> {
                         iced_core::svg::Handle::from_memory(bytes)
                     }),
             },
-            animation_duration_ms: 200,
+            forward_animation_duration_ms: 100,
+            backward_animation_duration_ms: 400,
         }
     }
 
@@ -331,7 +334,8 @@ impl<'a, Message: 'a + Clone> Widget<Message, crate::Theme, crate::Renderer>
             &self.on_press,
             &self.on_press_down,
             || tree.state.downcast_mut::<State>(),
-            self.animation_duration_ms,
+            self.forward_animation_duration_ms,
+            self.backward_animation_duration_ms,
         )
     }
 
@@ -682,7 +686,8 @@ pub fn update<'a, Message: Clone>(
     on_press: &Option<Message>,
     on_press_down: &Option<Message>,
     state: impl FnOnce() -> &'a mut State,
-    animation_duration_ms: u32,
+    forward_animation_duration_ms: u32,
+    backward_animation_duration_ms: u32,
 ) -> event::Status {
     match event {
         Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
@@ -759,16 +764,18 @@ pub fn update<'a, Message: Clone>(
             let state = state();
 
             if state.is_pressed || state.pressed_animation.is_running() {
-                if state
-                    .pressed_animation
-                    .on_redraw_request_update(animation_duration_ms, now)
-                {
+                if state.pressed_animation.on_redraw_request_update(
+                    forward_animation_duration_ms,
+                    backward_animation_duration_ms,
+                    now,
+                ) {
                     shell.request_redraw(window::RedrawRequest::NextFrame);
                 }
-            } else if state
-                .hovered_animation
-                .on_redraw_request_update(animation_duration_ms, now)
-            {
+            } else if state.hovered_animation.on_redraw_request_update(
+                forward_animation_duration_ms,
+                backward_animation_duration_ms,
+                now,
+            ) {
                 shell.request_redraw(window::RedrawRequest::NextFrame);
             }
         }

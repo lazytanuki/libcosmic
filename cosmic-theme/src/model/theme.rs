@@ -602,6 +602,7 @@ pub struct ThemeBuilder {
     /// cosmic-comp custom window hint color
     pub window_hint: Option<Srgb>,
     /// override how fast the theme transitions are for the builder
+    /// TODO: currently unused, needs work in Iced to expose it in the `update` function
     pub animation_multiplier: f32,
 }
 
